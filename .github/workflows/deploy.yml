@@ -27,7 +27,7 @@ jobs:
 
       - name: Build and Push Frontend Image
         run: |
-          IMAGE_TAG=${{ vars.DOCKERHUB_USERNAME }}/mern-frontend:${{ github.sha }}
+          IMAGE_TAG=${{ vars.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }}
           docker build -t $IMAGE_TAG ./frontend
           docker push $IMAGE_TAG
 
