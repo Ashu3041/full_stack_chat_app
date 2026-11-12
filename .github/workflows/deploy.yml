@@ -1,0 +1,39 @@
+name: Build and Deploy MERN to On-Prem K8s
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and Push Backend Image
+        run: |
+          IMAGE_TAG=${{ vars.DOCKERHUB_USERNAME }}/backend:${{ github.sha }}
+          docker build -t $IMAGE_TAG ./backend
+          docker push $IMAGE_TAG
+
+      - name: Build and Push Frontend Image
+        run: |
+          IMAGE_TAG=${{ vars.DOCKERHUB_USERNAME }}/mern-frontend:${{ github.sha }}
+          docker build -t $IMAGE_TAG ./frontend
+          docker push $IMAGE_TAG
+
+      - name: Deploy Updated Images to Kubernetes
+        run: |
+          kubectl set image deployment/backend backend=${{ vars.DOCKERHUB_USERNAME }}/backend:${{ github.sha }} -n nginx
+          kubectl set image deployment/frontend frontend=${{ vars.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }} -n nginx
+          kubectl rollout status deployment/backend -n nginx --timeout=120s
+          kubectl rollout status deployment/frontend -n nginx --timeout=120s
