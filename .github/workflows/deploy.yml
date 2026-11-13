@@ -1,9 +1,13 @@
-name: Build and Deploy MERN to On-Prem K8s
+name: Build and Deploy
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Docker image tag (e.g., v2, v3)'
+        required: true
+        default: 'v2'
+        type: string
 
 jobs:
   build-and-deploy:
@@ -21,19 +25,19 @@ jobs:
 
       - name: Build and Push Backend Image
         run: |
-          IMAGE_TAG=${{ vars.DOCKERHUB_USERNAME }}/backend:${{ github.sha }}
+          IMAGE_TAG=${{ vars.DOCKERHUB_USERNAME }}/backend:${{ inputs.image_tag }}
           docker build -t $IMAGE_TAG ./backend
           docker push $IMAGE_TAG
 
       - name: Build and Push Frontend Image
         run: |
-          IMAGE_TAG=${{ vars.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }}
+          IMAGE_TAG=${{ vars.DOCKERHUB_USERNAME }}/frontend:${{ inputs.image_tag }}
           docker build -t $IMAGE_TAG ./frontend
           docker push $IMAGE_TAG
 
       - name: Deploy Updated Images to Kubernetes
         run: |
-          kubectl set image deployment/backend backend=${{ vars.DOCKERHUB_USERNAME }}/backend:${{ github.sha }} -n nginx
-          kubectl set image deployment/frontend frontend=${{ vars.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }} -n nginx
+          kubectl set image deployment/backend backend=${{ vars.DOCKERHUB_USERNAME }}/backend:${{ inputs.image_tag }} -n nginx
+          kubectl set image deployment/frontend frontend=${{ vars.DOCKERHUB_USERNAME }}/frontend:${{ inputs.image_tag }} -n nginx
           kubectl rollout status deployment/backend -n nginx --timeout=120s
           kubectl rollout status deployment/frontend -n nginx --timeout=120s
